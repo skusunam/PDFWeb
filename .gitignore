@@ -3,3 +3,4 @@ bin
 PDFWeb.iml
 .gradle
 build
+testfile*
