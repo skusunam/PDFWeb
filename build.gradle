@@ -1,6 +1,13 @@
+buildscript {
+    repositories { mavenCentral() }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.0.2.RELEASE")
+    }
+}
 apply plugin: 'application'
 apply plugin: 'scala'
 apply plugin: 'idea'
+apply plugin: 'spring-boot'
 
 version = '1.0'
 mainClassName = "com.adp.ds.pdfweb.Main"
@@ -19,7 +26,11 @@ dependencies {
     compile 'org.apache.pdfbox:pdfbox:1.8.5-SNAPSHOT'
     compile 'org.slf4j:slf4j-api:1.7.7'
     compile 'ch.qos.logback:logback-classic:1.1.2'
-    
+    compile 'org.springframework.boot:spring-boot-starter-web:1.0.2.RELEASE'
+    compile 'org.springframework.boot:spring-boot-starter-actuator:1.0.2.RELEASE'
+    compile 'com.google.code.gson:gson:2.2.4'
+    compile 'com.typesafe.akka:akka-actor_2.10:2.3.2'
+
     compile fileTree(dir: 'lib', include: '*.jar')
 
     testCompile 'org.scalatest:scalatest_2.10:2.0'
