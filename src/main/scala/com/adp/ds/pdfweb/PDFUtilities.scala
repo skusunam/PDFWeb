@@ -32,6 +32,7 @@ class PDFUtilities(pdfFile:String) {
         val pageBaseName = s"$baseName$idx"
         writeImage(page, pageBaseName)
       }
+    document.save(new File(s"${baseName}_out.pdf"))
   }
 
   def addBlocks(signatures: Seq[SigningBlock]) = {
@@ -77,29 +78,26 @@ class PDFUtilities(pdfFile:String) {
     }
   }
 
-  def applySignature(signatureBlocks:Seq[SigningBlock], signature:String){
-    val image = convertJsonToImage(signature)
+  def applySignature(signatureBlocks:Seq[SigningBlock], signatureJson:String){
+    val image = convertJsonToImage(signatureJson)
     val ximage = new PDJpeg(document, image)
     val pages = document.getDocumentCatalog.getAllPages()
+    val signatureLines = getSignatureLines(signatureJson)
     for(block <- signatureBlocks;
         page = pages(block.page - 1).asInstanceOf[PDPage];
-        cs <- managed(new PDPageContentStream(document,page, true, true))){
-      cs.drawImage(ximage, block.xLocation, page.getMediaBox.getHeight - block.yLocation - block.height)
+        cs <- managed(new PDPageContentStream(document, page, true, true))){
+      val blockZeroY = page.getMediaBox.getHeight - block.yLocation
+      //cs.drawImage(ximage, block.xLocation, blockZeroY - block.height)
+      cs.setStrokingColor(Color.black)
+      for (line <- signatureLines) {
+        cs.drawLine(line.lx, blockZeroY - line.ly, line.mx, blockZeroY - line.my)
+      }
     }
   }
 
-  def convertJsonToImage(jsonString: String) = {
+  def getSignatureLines(jsonString: String): Array[SignatureLine] = {
     val gson = new Gson()
     val signatureLines = gson.fromJson(jsonString, classOf[Array[SignatureLine]])
-    val offscreenImage = new BufferedImage(200, 50, BufferedImage.TYPE_INT_RGB)
-    val g2 = offscreenImage.createGraphics()
-    g2.setColor(Color.white)
-    g2.fillRect(0, 0, 200, 50)
-    g2.setPaint(Color.black)
-    for (line <- signatureLines) {
-      g2.drawLine(line.lx, line.ly, line.mx, line.my)
-    }
-    g2.dispose()
-    offscreenImage
+    signatureLines
   }
 }
