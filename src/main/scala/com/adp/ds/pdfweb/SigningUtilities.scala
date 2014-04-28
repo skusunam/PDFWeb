@@ -9,11 +9,9 @@ import org.slf4j.LoggerFactory
 import resource.managed
 import scala.collection.JavaConversions._
 import com.google.gson.Gson
-import java.awt.image.BufferedImage
-import org.apache.pdfbox.pdmodel.graphics.xobject.PDJpeg
 
-class PDFUtilities(pdfFile:String) {
-  val logger = LoggerFactory.getLogger(classOf[PDFUtilities])
+class SigningUtilities(pdfFile:String) {
+  val logger = LoggerFactory.getLogger(classOf[SigningUtilities])
 
   implicit def toFile(path: String) = new File(path)
 
@@ -79,23 +77,20 @@ class PDFUtilities(pdfFile:String) {
   }
 
   def applySignature(signatureBlocks:Seq[SigningBlock], signatureJson:String){
-    val image = convertJsonToImage(signatureJson)
-    val ximage = new PDJpeg(document, image)
     val pages = document.getDocumentCatalog.getAllPages()
     val signatureLines = getSignatureLines(signatureJson)
     for(block <- signatureBlocks;
         page = pages(block.page - 1).asInstanceOf[PDPage];
         cs <- managed(new PDPageContentStream(document, page, true, true))){
       val blockZeroY = page.getMediaBox.getHeight - block.yLocation
-      //cs.drawImage(ximage, block.xLocation, blockZeroY - block.height)
       cs.setStrokingColor(Color.black)
       for (line <- signatureLines) {
-        cs.drawLine(line.lx, blockZeroY - line.ly, line.mx, blockZeroY - line.my)
+        cs.drawLine(block.xLocation + line.lx, blockZeroY - line.ly, block.xLocation + line.mx, blockZeroY - line.my)
       }
     }
   }
 
-  def getSignatureLines(jsonString: String): Array[SignatureLine] = {
+  def getSignatureLines(jsonString: String) = {
     val gson = new Gson()
     val signatureLines = gson.fromJson(jsonString, classOf[Array[SignatureLine]])
     signatureLines
