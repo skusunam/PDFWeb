@@ -30,6 +30,7 @@ class SigningUtilities(pdfFile:String) {
         val pageBaseName = s"$baseName$idx"
         writeImage(page, pageBaseName)
       }
+    logger.info(s"Saving signed PDF as ${baseName}_out.pdf")
     document.save(new File(s"${baseName}_out.pdf"))
   }
 
@@ -53,7 +54,7 @@ class SigningUtilities(pdfFile:String) {
 
   def writeHtml(baseName: String) {
     val fileName = s"$baseName.html"
-    logger.debug(s"Writing to file $fileName")
+    logger.info(s"Writing to file $fileName")
     for (writer <- managed(new FileWriter(s"$fileName"))) {
       writer.write("<html><head></head><body>")
       for ((page, idx) <- document.getDocumentCatalog.getAllPages.map(_.asInstanceOf[PDPage]) zip Range(1, Int.MaxValue)) {
@@ -70,13 +71,14 @@ class SigningUtilities(pdfFile:String) {
   def writeImage(page: PDPage, baseName: String) {
     val img = page.convertToImage
     val outFile = s"$baseName.png"
-    logger.debug(s"Writing to file $outFile")
+    logger.info(s"Writing to file $outFile")
     for (os <- managed(new FileOutputStream(outFile))) {
       ImageIOUtil.writeImage(img, "png", os)
     }
   }
 
   def applySignature(signatureBlocks:Seq[SigningBlock], signatureJson:String){
+    logger.info("Applying signature")
     val pages = document.getDocumentCatalog.getAllPages()
     val signatureLines = getSignatureLines(signatureJson)
     for(block <- signatureBlocks;
