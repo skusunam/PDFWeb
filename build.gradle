@@ -1,13 +1,15 @@
 buildscript {
     repositories { mavenCentral() }
     dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.0.2.RELEASE")
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:1.0.2.RELEASE"
+        //classpath 'com.github.maiflai:gradle-scalatest:0.3'
     }
 }
 apply plugin: 'application'
 apply plugin: 'scala'
 apply plugin: 'idea'
 apply plugin: 'spring-boot'
+//apply plugin: 'scalatest'
 
 version = '1.0'
 mainClassName = "com.adp.ds.pdfweb.Main"
@@ -28,12 +30,14 @@ dependencies {
     compile 'ch.qos.logback:logback-classic:1.1.2'
     compile 'org.springframework.boot:spring-boot-starter-web:1.0.2.RELEASE'
     compile 'org.springframework.boot:spring-boot-starter-actuator:1.0.2.RELEASE'
-    compile 'com.google.code.gson:gson:2.2.4'
     compile 'com.typesafe.akka:akka-actor_2.10:2.3.2'
+    compile 'com.gu:prequel_2.10:0.3.12'
+    compile 'org.postgresql:postgresql:9.3-1101-jdbc41'
 
     compile fileTree(dir: 'lib', include: '*.jar')
 
     testCompile 'org.scalatest:scalatest_2.10:2.0'
+    testCompile 'junit:junit:4.11'
 }
 
 idea {
@@ -49,4 +53,10 @@ compileScala {
 }
 tasks.withType(ScalaCompile) {
     scalaCompileOptions.useAnt = false
+}
+
+test {
+    forkEvery = 1
+    maxParallelForks = 1
+    testLogging.showStandardStreams = true
 }

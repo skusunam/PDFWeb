@@ -4,3 +4,8 @@ PDFWeb.iml
 .gradle
 build
 testfile*
+classes
+*.swp
+atlassian-ide-plugin.xml
+data
+*.log

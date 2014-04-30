@@ -3,35 +3,33 @@ package com.adp.ds.pdfweb
 import org.apache.pdfbox.pdmodel.{PDPage, PDDocument}
 import org.apache.pdfbox.pdmodel.edit.PDPageContentStream
 import java.awt.Color
-import java.io.{File, FileOutputStream, FileWriter}
+import java.io.{InputStream, File, FileOutputStream, FileWriter}
 import org.apache.pdfbox.util.ImageIOUtil
 import org.slf4j.LoggerFactory
 import resource.managed
 import scala.collection.JavaConversions._
-import com.google.gson.Gson
 
-class SigningUtilities(pdfFile:String) {
+class SigningUtilities(inputStream: InputStream) {
   val logger = LoggerFactory.getLogger(classOf[SigningUtilities])
 
   implicit def toFile(path: String) = new File(path)
 
   val scale = 96.0f / 72.0f
-  logger.debug(s"Reading file ${pdfFile.getAbsolutePath}")
-  val document = PDDocument.load(pdfFile)
+  logger.debug(s"Reading file")
+  val document = PDDocument.load(inputStream)
 
   def close() {
     document.close()
   }
-  def processSigningPDF(signatures: Array[SigningBlock]) {
-      addBlocks(signatures)
-      val baseName = s"${pdfFile.getAbsolutePath.getParent}${File.separator}${pdfFile.getName.split('.')(0)}"
-      writeHtml(baseName)
-      for ((page, idx) <- document.getDocumentCatalog.getAllPages.map(_.asInstanceOf[PDPage]) zip Range(1, Int.MaxValue)) {
-        val pageBaseName = s"$baseName$idx"
-        writeImage(page, pageBaseName)
-      }
-    logger.info(s"Saving signed PDF as ${baseName}_out.pdf")
-    document.save(new File(s"${baseName}_out.pdf"))
+
+  def processSigningPDF(signatures: Array[SigningBlock], baseDirectory:String) {
+    val baseName = s"${baseDirectory}${File.separator}request"
+    document.save(s"${baseName}_orig.pdf")
+    writeHtml(baseName)
+    for ((page, idx) <- document.getDocumentCatalog.getAllPages.map(_.asInstanceOf[PDPage]) zip Range(1, Int.MaxValue)) {
+      val pageBaseName = s"$baseName$idx"
+      writeImage(page, pageBaseName)
+    }
   }
 
   def addBlocks(signatures: Seq[SigningBlock]) = {
@@ -77,24 +75,17 @@ class SigningUtilities(pdfFile:String) {
     }
   }
 
-  def applySignature(signatureBlocks:Seq[SigningBlock], signatureJson:String){
+  def applySignature(signatureBlocks: Seq[SigningBlock], signatureLines: Seq[SignatureLine]) = {
     logger.info("Applying signature")
     val pages = document.getDocumentCatalog.getAllPages()
-    val signatureLines = getSignatureLines(signatureJson)
-    for(block <- signatureBlocks;
-        page = pages(block.page - 1).asInstanceOf[PDPage];
-        cs <- managed(new PDPageContentStream(document, page, true, true))){
+    for (block <- signatureBlocks;
+         page = pages(block.page - 1).asInstanceOf[PDPage];
+         cs <- managed(new PDPageContentStream(document, page, true, true))) {
       val blockZeroY = page.getMediaBox.getHeight - block.yLocation
       cs.setStrokingColor(Color.black)
       for (line <- signatureLines) {
         cs.drawLine(block.xLocation + line.lx, blockZeroY - line.ly, block.xLocation + line.mx, blockZeroY - line.my)
       }
     }
-  }
-
-  def getSignatureLines(jsonString: String) = {
-    val gson = new Gson()
-    val signatureLines = gson.fromJson(jsonString, classOf[Array[SignatureLine]])
-    signatureLines
   }
 }

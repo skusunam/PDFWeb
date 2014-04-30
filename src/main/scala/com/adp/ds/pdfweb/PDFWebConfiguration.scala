@@ -7,5 +7,4 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 @ComponentScan
 @EnableAutoConfiguration
 class PDFWebConfiguration {
-  def foo() {}
 }

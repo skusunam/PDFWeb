@@ -4,15 +4,42 @@ import org.springframework.web.bind.annotation._
 import org.springframework.stereotype.Controller
 import resource._
 import org.slf4j.LoggerFactory
+import net.noerd.prequel.DatabaseConfig
+
+object PDFController {
+
+}
 
 @Controller
-@RequestMapping(Array("/pdf"))
 @ResponseBody
 class PDFController {
   val logger = LoggerFactory.getLogger(classOf[PDFController])
 
-  @RequestMapping(method = Array(RequestMethod.GET))
-  def index(@RequestParam name:String) = "Hello, " + name
+  @RequestMapping(value = Array("/deals"), method = Array(RequestMethod.GET))
+  def get() = new Deal {
+    documents = Array(new SignableDocument {
+      title = "Bob"
+      pages = Array(new SignablePage {
+        imageUrl = "http://host/image.png"
+        signingBlocks = Array(new SigningBlock {
+          page = 1
+          xLocation = 12
+          yLocation = 45
+          width = 100
+          height = 25
+          role = "buyer"
+        }, new SigningBlock {
+          page = 1
+          xLocation = 45
+          yLocation = 45
+          width = 100
+          height = 25
+          role = "cobuyer"
+        })
+      })
+    })
+  }
+
 
   /**
    * Example JSON
@@ -20,17 +47,23 @@ class PDFController {
    * @param body
    * @return
    */
-  @RequestMapping(method = Array(RequestMethod.POST))
-  def post(@RequestBody body:String) = {
+  @RequestMapping(value = Array("/pdf"), method = Array(RequestMethod.POST))
+  def post(@RequestBody body: Array[SignatureLine]) = {
     logger.info("Processing PDF signing request")
     val pdfFile = "testFile.pdf"
-    val signatureBlocks = Array(SigningBlock(1, 257, 27, 63, 618, SigningRole.Buyer),
-      SigningBlock(1, 257, 27, 63, 663, SigningRole.Cobuyer)
+    val signatureBlocks = Array(new SigningBlock {
+      page = 1; width = 257; height = 27; xLocation = 63; yLocation = 618; role = "buyer"
+    },
+      new SigningBlock {
+        page = 1; width = 257; height = 27; xLocation = 63; yLocation = 663; role = "cobuyer"
+      }
     )
-    for(utilities <- managed(new SigningUtilities(pdfFile))){
+/*
+    for (utilities <- managed(new SigningUtilities(pdfFile))) {
       utilities.applySignature(signatureBlocks, body)
       utilities.processSigningPDF(signatureBlocks)
     }
+*/
     "Document signing has been completed"
   }
 
