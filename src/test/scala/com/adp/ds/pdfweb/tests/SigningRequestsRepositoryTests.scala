@@ -4,15 +4,15 @@ import org.scalatest.{BeforeAndAfterEach, FunSuite}
 import com.adp.ds.pdfweb._
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
-import java.io.File
 
 @RunWith(classOf[JUnitRunner])
 class SigningRequestsRepositoryTests extends FunSuite with BeforeAndAfterEach {
   val repo = new SigningRequestsRepository()
   override def beforeEach() {
     SigningRequestsRepository.database.transaction{tx => {
+      tx.execute("TRUNCATE TABLE pages")
       tx.execute("TRUNCATE TABLE signingblocks")
-      tx.execute("TRUNCATE TABLE requests")
+      tx.execute("DELETE FROM requests")
     }}
   }
 
@@ -20,12 +20,14 @@ class SigningRequestsRepositoryTests extends FunSuite with BeforeAndAfterEach {
     repo.addRequest(new SigningRequest{
       id = "bob"
       dealId = "mydealid"
-      baseDirectory = new File("data/testrequests")
+      originalFileName = "myfileName.pdf"
       document = new SignableDocument {
         title = "Interesting ID"
         pages = Array(new SignablePage {
+          id = 123
+          width = 640
+          height = 480
           signingBlocks = Array(new SigningBlock{
-            page = 1
             xLocation = 123
             yLocation = 456
             width = 276
@@ -38,5 +40,6 @@ class SigningRequestsRepositoryTests extends FunSuite with BeforeAndAfterEach {
 
     assert(SigningRequestsRepository.database.transaction(_.selectInt("SELECT COUNT(*) FROM requests")) === 1)
     assert(SigningRequestsRepository.database.transaction(_.selectInt("SELECT COUNT(*) FROM signingblocks")) === 1)
+    assert(SigningRequestsRepository.database.transaction(_.selectInt("SELECT COUNT(*) FROM pages")) === 1)
   }
 }

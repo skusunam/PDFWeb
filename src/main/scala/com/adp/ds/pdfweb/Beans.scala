@@ -1,12 +1,12 @@
 package com.adp.ds.pdfweb
 
 import scala.beans.BeanInfo
-import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
-import java.io.File
+import com.fasterxml.jackson.annotation.JsonProperty
 
 
 @BeanInfo class SigningBlock {
-  @JsonProperty var page = 1
+  @JsonProperty var id = 0
+  @JsonProperty var pageId = 1
   @JsonProperty var width = 0f
   @JsonProperty var height = 0f
   @JsonProperty var xLocation = 0f
@@ -15,8 +15,12 @@ import java.io.File
 }
 
 @BeanInfo class SignablePage {
+  @JsonProperty var id = 0
   @JsonProperty var imageUrl = ""
+  @JsonProperty var path = ""
   @JsonProperty var signingBlocks = Array[SigningBlock]()
+  @JsonProperty var width = 0f
+  @JsonProperty var height = 0f
 }
 
 @BeanInfo class SignableDocument {
@@ -24,6 +28,7 @@ import java.io.File
   @JsonProperty var pages = Array[SignablePage]()
   @JsonProperty var contents = Array[Byte]()
 }
+
 @BeanInfo class Deal {
   @JsonProperty var dealId = ""
   @JsonProperty var documents = Array[SignableDocument]()
@@ -32,9 +37,10 @@ import java.io.File
 @BeanInfo class SigningRequest {
   @JsonProperty var id = ""
   @JsonProperty var dealId = ""
-  @JsonProperty var document:SignableDocument = null
-  @JsonProperty var baseDirectory:File = null
+  @JsonProperty var document: SignableDocument = null
+  @JsonProperty var originalFileName: String = null
 }
+
 @BeanInfo class SignatureLine {
   @JsonProperty var lx = 0
   @JsonProperty var ly = 0

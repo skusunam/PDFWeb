@@ -2,42 +2,31 @@ package com.adp.ds.pdfweb
 
 import org.springframework.web.bind.annotation._
 import org.springframework.stereotype.Controller
-import resource._
 import org.slf4j.LoggerFactory
-import net.noerd.prequel.DatabaseConfig
-
-object PDFController {
-
-}
+import org.springframework.beans.factory.annotation.Autowired
+import akka.actor.ActorRef
+import java.io.{FileInputStream, File}
+import resource.managed
 
 @Controller
 @ResponseBody
-class PDFController {
+class PDFController @Autowired()(signingProcessor: ActorRef, repo: SigningRequestsRepository) {
   val logger = LoggerFactory.getLogger(classOf[PDFController])
+  val assetsPrefix = new File("data/testrepository").getAbsolutePath
 
   @RequestMapping(value = Array("/deals"), method = Array(RequestMethod.GET))
-  def get() = new Deal {
-    documents = Array(new SignableDocument {
-      title = "Bob"
-      pages = Array(new SignablePage {
-        imageUrl = "http://host/image.png"
-        signingBlocks = Array(new SigningBlock {
-          page = 1
-          xLocation = 12
-          yLocation = 45
-          width = 100
-          height = 25
-          role = "buyer"
-        }, new SigningBlock {
-          page = 1
-          xLocation = 45
-          yLocation = 45
-          width = 100
-          height = 25
-          role = "cobuyer"
-        })
-      })
-    })
+  def deals() = {
+    val deals = repo.getDeals()
+    for (page <- deals.documents.flatMap(d => d.pages)) {
+      page.imageUrl = page.path.replace(assetsPrefix, "/assets")
+    }
+    deals
+  }
+
+  @RequestMapping(value = Array("/signingrequests"), method = Array(RequestMethod.POST))
+  def signingrequests(@RequestBody request: SigningRequest) = {
+    signingProcessor ! ProcessSigningRequest(request)
+    "Posted"
   }
 
 
@@ -52,18 +41,26 @@ class PDFController {
     logger.info("Processing PDF signing request")
     val pdfFile = "testFile.pdf"
     val signatureBlocks = Array(new SigningBlock {
-      page = 1; width = 257; height = 27; xLocation = 63; yLocation = 618; role = "buyer"
+      pageId = 1;
+      width = 257;
+      height = 27;
+      xLocation = 63;
+      yLocation = 618;
+      role = "buyer"
     },
       new SigningBlock {
-        page = 1; width = 257; height = 27; xLocation = 63; yLocation = 663; role = "cobuyer"
+        pageId = 1;
+        width = 257;
+        height = 27;
+        xLocation = 63;
+        yLocation = 663;
+        role = "cobuyer"
       }
     )
-/*
-    for (utilities <- managed(new SigningUtilities(pdfFile))) {
+    for (utilities <- managed(new SigningUtilities(new FileInputStream(pdfFile)))) {
       utilities.applySignature(signatureBlocks, body)
-      utilities.processSigningPDF(signatureBlocks)
+      //utilities.processSigningPDF(signatureBlocks)
     }
-*/
     "Document signing has been completed"
   }
 

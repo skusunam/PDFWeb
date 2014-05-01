@@ -22,19 +22,23 @@ class SigningUtilities(inputStream: InputStream) {
     document.close()
   }
 
-  def processSigningPDF(signatures: Array[SigningBlock], baseDirectory:String) {
-    val baseName = s"${baseDirectory}${File.separator}request"
-    document.save(s"${baseName}_orig.pdf")
+  def processSigningPDF(request: SigningRequest, baseDirectory: File) {
+    val baseName = s"${baseDirectory.getAbsolutePath}${File.separator}request"
+    request.originalFileName = s"${baseName}_orig.pdf"
+    document.save(request.originalFileName)
     writeHtml(baseName)
-    for ((page, idx) <- document.getDocumentCatalog.getAllPages.map(_.asInstanceOf[PDPage]) zip Range(1, Int.MaxValue)) {
-      val pageBaseName = s"$baseName$idx"
-      writeImage(page, pageBaseName)
+    for (((page, reqPage), idx) <- document.getDocumentCatalog.getAllPages.map(_.asInstanceOf[PDPage]) zip request.document.pages zip Range(1, Int.MaxValue)) {
+      val fileName = s"$baseName$idx.png"
+      writeImage(page, fileName)
+      reqPage.path = fileName
+      reqPage.width = page.getMediaBox.getWidth
+      reqPage.height = page.getMediaBox.getHeight
     }
   }
 
   def addBlocks(signatures: Seq[SigningBlock]) = {
     for (signature <- signatures) {
-      val page = document.getDocumentCatalog.getAllPages()(signature.page - 1).asInstanceOf[PDPage]
+      val page = document.getDocumentCatalog.getAllPages()(signature.pageId - 1).asInstanceOf[PDPage]
       val height = page.getMediaBox.getHeight
       for (cs <- managed(new PDPageContentStream(document, page, true, true))) {
         cs.setStrokingColor(Color.red)
@@ -66,9 +70,8 @@ class SigningUtilities(inputStream: InputStream) {
 
   }
 
-  def writeImage(page: PDPage, baseName: String) {
+  def writeImage(page: PDPage, outFile: String) {
     val img = page.convertToImage
-    val outFile = s"$baseName.png"
     logger.info(s"Writing to file $outFile")
     for (os <- managed(new FileOutputStream(outFile))) {
       ImageIOUtil.writeImage(img, "png", os)
@@ -79,7 +82,7 @@ class SigningUtilities(inputStream: InputStream) {
     logger.info("Applying signature")
     val pages = document.getDocumentCatalog.getAllPages()
     for (block <- signatureBlocks;
-         page = pages(block.page - 1).asInstanceOf[PDPage];
+         page = pages(block.pageId - 1).asInstanceOf[PDPage];
          cs <- managed(new PDPageContentStream(document, page, true, true))) {
       val blockZeroY = page.getMediaBox.getHeight - block.yLocation
       cs.setStrokingColor(Color.black)

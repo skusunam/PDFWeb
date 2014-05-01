@@ -11,6 +11,7 @@ import scala.io.Source
 import com.adp.ds.pdfweb.ProcessSigningRequest
 import akka.actor.Terminated
 import resource.managed
+import com.fasterxml.jackson.databind.ObjectMapper
 
 @RunWith(classOf[JUnitRunner])
 class SigningProcessorTests extends FunSuite with BeforeAndAfterEach {
@@ -30,8 +31,9 @@ class SigningProcessorTests extends FunSuite with BeforeAndAfterEach {
   override def beforeEach() {
     SigningRequestsRepository.database.transaction {
       tx => {
+        tx.execute("TRUNCATE TABLE pages")
         tx.execute("TRUNCATE TABLE signingblocks")
-        tx.execute("TRUNCATE TABLE requests")
+        tx.execute("DELETE FROM requests")
       }
     }
   }
@@ -39,16 +41,16 @@ class SigningProcessorTests extends FunSuite with BeforeAndAfterEach {
   test("Should be able to post request") {
     for (source <- managed(Source.fromFile("testFile.pdf")(scala.io.Codec.ISO8859))) {
       val bytes = source.map(_.toByte).toArray
-      actor ! ProcessSigningRequest(new SigningRequest {
+      val req = new SigningRequest {
         id = "myrequest"
         dealId = "mydealid"
         document = new SignableDocument {
           title = "MyDocument"
           contents = bytes
           pages = Array(new SignablePage {
+            id = 1234
             signingBlocks = Array(
               new SigningBlock {
-                page = 1
                 width = 257
                 height = 27
                 xLocation = 63
@@ -56,7 +58,6 @@ class SigningProcessorTests extends FunSuite with BeforeAndAfterEach {
                 role = "buyer"
               },
               new SigningBlock {
-                page = 1
                 width = 257
                 height = 27
                 xLocation = 63
@@ -66,7 +67,10 @@ class SigningProcessorTests extends FunSuite with BeforeAndAfterEach {
             )
           })
         }
-      })
+      }
+      val mapper = new ObjectMapper()
+      mapper.writeValue(new File("testFile1_req.json"), req)
+      actor ! ProcessSigningRequest(req)
       actor ! PoisonPill
       system.awaitTermination(5 seconds)
 
