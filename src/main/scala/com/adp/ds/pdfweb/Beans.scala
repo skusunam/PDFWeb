@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 @BeanInfo class SigningBlock {
   @JsonProperty var id = 0
-  @JsonProperty var pageId = 1
+  @JsonProperty var pageIdx = 0
   @JsonProperty var width = 0f
   @JsonProperty var height = 0f
   @JsonProperty var xLocation = 0f
@@ -16,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 @BeanInfo class SignablePage {
   @JsonProperty var id = 0
+  @JsonProperty var idx = 0
   @JsonProperty var imageUrl = ""
   @JsonProperty var path = ""
   @JsonProperty var signingBlocks = Array[SigningBlock]()
@@ -25,6 +26,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 @BeanInfo class SignableDocument {
   @JsonProperty var title = ""
+  @JsonProperty var originalRequestId = ""
   @JsonProperty var pages = Array[SignablePage]()
   @JsonProperty var contents = Array[Byte]()
 }
@@ -46,4 +48,9 @@ import com.fasterxml.jackson.annotation.JsonProperty
   @JsonProperty var ly = 0
   @JsonProperty var mx = 0
   @JsonProperty var my = 0
+}
+
+@BeanInfo class SignedBlock {
+  @JsonProperty var signingBlockId = 0
+  @JsonProperty var signatureLines: Array[SignatureLine] = null
 }

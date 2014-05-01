@@ -5,25 +5,26 @@ import org.springframework.stereotype.Controller
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import akka.actor.ActorRef
-import java.io.{FileInputStream, File}
-import resource.managed
+import java.io.File
 
 @Controller
 @ResponseBody
 class PDFController @Autowired()(signingProcessor: ActorRef, repo: SigningRequestsRepository) {
   val logger = LoggerFactory.getLogger(classOf[PDFController])
   val assetsPrefix = new File("data/testrepository").getAbsolutePath
+  val assetsUrlPrefix = "/assets"
 
-  @RequestMapping(value = Array("/deals"), method = Array(RequestMethod.GET))
+  @RequestMapping(value = Array("/api/deals", "/deals"), method = Array(RequestMethod.GET))
   def deals() = {
-    val deals = repo.getDeals()
-    for (page <- deals.documents.flatMap(d => d.pages)) {
-      page.imageUrl = page.path.replace(assetsPrefix, "/assets")
+    val deals = repo.getDeals().toArray
+    for (deal <- deals;
+         page <- deal.documents.flatMap(d => d.pages)) {
+      page.imageUrl = page.path.replace(assetsPrefix, assetsUrlPrefix)
     }
     deals
   }
 
-  @RequestMapping(value = Array("/signingrequests"), method = Array(RequestMethod.POST))
+  @RequestMapping(value = Array("/api/signingrequests", "/signingrequests"), method = Array(RequestMethod.POST))
   def signingrequests(@RequestBody request: SigningRequest) = {
     signingProcessor ! ProcessSigningRequest(request)
     "Posted"
@@ -36,32 +37,10 @@ class PDFController @Autowired()(signingProcessor: ActorRef, repo: SigningReques
    * @param body
    * @return
    */
-  @RequestMapping(value = Array("/pdf"), method = Array(RequestMethod.POST))
-  def post(@RequestBody body: Array[SignatureLine]) = {
-    logger.info("Processing PDF signing request")
-    val pdfFile = "testFile.pdf"
-    val signatureBlocks = Array(new SigningBlock {
-      pageId = 1;
-      width = 257;
-      height = 27;
-      xLocation = 63;
-      yLocation = 618;
-      role = "buyer"
-    },
-      new SigningBlock {
-        pageId = 1;
-        width = 257;
-        height = 27;
-        xLocation = 63;
-        yLocation = 663;
-        role = "cobuyer"
-      }
-    )
-    for (utilities <- managed(new SigningUtilities(new FileInputStream(pdfFile)))) {
-      utilities.applySignature(signatureBlocks, body)
-      //utilities.processSigningPDF(signatureBlocks)
-    }
-    "Document signing has been completed"
+  @RequestMapping(value = Array("/api/signedBlock", "/signedBlock"), method = Array(RequestMethod.POST))
+  def post(@RequestBody body: SignedBlock) = {
+    signingProcessor ! ProcessSignedBlock(body)
+    "Document signing has been queued"
   }
 
 }
